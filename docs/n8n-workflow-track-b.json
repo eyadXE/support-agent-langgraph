@@ -1,0 +1,217 @@
+{
+  "name": "My workflow",
+  "nodes": [
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.chatTrigger",
+      "typeVersion": 1.4,
+      "position": [
+        0,
+        0
+      ],
+      "id": "f5eee0ca-e1bb-41c1-889d-f91c9c6f2f92",
+      "name": "When chat message received",
+      "webhookId": "00825fcd-e29f-43c6-abe2-d3df151914c9"
+    },
+    {
+      "parameters": {
+        "options": {
+          "systemMessage": "You are a helpful assistant for an online store. Tools:\n1. get_order_status(order_id): status/ETA of an order.\n2. get_stock_status(item_name): stock quantity of an item.\n3. search_policy_docs(query): search returns/refunds/shipping policy docs.\n4. process_refund(order_id, reason): refund an order. This requires human\n   approval and may be rejected — never tell the customer money was\n   refunded unless the tool result confirms it completed.\n\nRules:\n- Always use the appropriate tool instead of guessing — never invent an\n  order status, stock number, or policy detail.\n- If search_policy_docs returns NO_RELEVANT_INFO, tell the user honestly\n  you don't have that information. Do not make up a policy.\n- Be friendly and concise.\n4. process_refund(order_id): refunds an order. This requires human approval and may be rejected — never tell the customer money was refunded unless the tool result confirms it completed. If rejected, apologize and offer to escalate to a human agent instead."
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 3.1,
+      "position": [
+        208,
+        0
+      ],
+      "id": "957095de-c817-42ff-b650-081bb1cc125c",
+      "name": "AI Agent"
+    },
+    {
+      "parameters": {
+        "model": "nvidia/nemotron-3-nano-30b-a3b:free",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatOpenRouter",
+      "typeVersion": 1,
+      "position": [
+        80,
+        208
+      ],
+      "id": "7fedc5d3-dafd-4a9c-a267-71e44b7b9fe6",
+      "name": "OpenRouter Chat Model",
+      "credentials": {
+        "openRouterApi": {
+          "id": "0G4wLEcug7Eng3sm",
+          "name": "OpenRouter account"
+        }
+      }
+    },
+    {
+      "parameters": {},
+      "type": "@n8n/n8n-nodes-langchain.memoryBufferWindow",
+      "typeVersion": 1.4,
+      "position": [
+        224,
+        208
+      ],
+      "id": "a63b3fc2-0e57-46b2-a3e3-97a509df5cb6",
+      "name": "Simple Memory"
+    },
+    {
+      "parameters": {
+        "description": "Check how many units of an item are currently in stock.",
+        "jsCode": "const STOCKS = {\n  \"jackets\": 10,\n  \"hoodies\": 5,\n  \"mugs\": 20,\n  \"t-shirts\": 15\n};\n\nconst key = query.trim().toLowerCase();\n\n// fuzzy match: does the query contain one of our known item keys?\nconst matchedKey = Object.keys(STOCKS).find(stockKey => key.includes(stockKey) || stockKey.includes(key));\n\nif (!matchedKey) {\n  return `We don't carry '${_query}' — it's not an item in our catalog.`;\n}\n\nreturn `We have ${STOCKS[matchedKey]} of '${query}' in stock.`;"
+      },
+      "type": "@n8n/n8n-nodes-langchain.toolCode",
+      "typeVersion": 1.3,
+      "position": [
+        480,
+        352
+      ],
+      "id": "d947bc66-c5a8-4298-b81c-62af5df53ab5",
+      "name": "check_inventory"
+    },
+    {
+      "parameters": {
+        "description": ": Look up the status, ETA, and item for a given order ID.",
+        "jsCode": "const rawQuery = typeof query === 'string' ? query : (query?.query ?? query?.input ?? JSON.stringify(query));\n\nconst ORDERS = {\n  \"A1234\": { status: \"shipped\", eta: \"Tuesday\", item: \"blue hoodie\" },\n  \"B5678\": { status: \"processing\", eta: \"not shipped\", item: \"red mug\" }\n};\n\nconst orderId = String(rawQuery).trim().toUpperCase();\nconst order = ORDERS[orderId];\n\nif (!order) {\n  return `No order found with ID '${orderId}'. Please double-check the order ID.`;\n}\n\nreturn `Order ${orderId}: status='${order.status}', eta='${order.eta}', item='${order.item}'.`;",
+        "specifyInputSchema": true,
+        "jsonSchemaExample": "{\n\t\"query\": \"some_value\"\n}\n"
+      },
+      "type": "@n8n/n8n-nodes-langchain.toolCode",
+      "typeVersion": 1.3,
+      "position": [
+        304,
+        352
+      ],
+      "id": "dbe05e32-e637-48b0-9047-e2da9c43fb10",
+      "name": "lookup_order"
+    },
+    {
+      "parameters": {
+        "description": "This is tool called when get asked anything about the policy",
+        "jsCode": "const HELP_DOCS = [\n  \"Returns: items can be returned within 30 days of delivery for a full refund, if unworn with tags attached.\",\n  \"Refunds go to the original payment method and take 5-7 business days after we receive the returned item.\",\n  \"Shipping: standard is 3-5 business days; express is 1-2 days ($12).\"\n];\n\nreturn HELP_DOCS.join(\" \");"
+      },
+      "type": "@n8n/n8n-nodes-langchain.toolCode",
+      "typeVersion": 1.3,
+      "position": [
+        608,
+        448
+      ],
+      "id": "f439afd2-8381-4107-87de-ee56ea1ef835",
+      "name": "policy"
+    },
+    {
+      "parameters": {
+        "description": "Refund the customer for an order. This moves real money and requires human approval before it executes — never tell the customer a refund happened unless this tool actually returns a confirmation.",
+        "jsCode": "const rawQuery = typeof query === 'string' ? query : (query?.query ?? query?.input ?? JSON.stringify(query));\n\nconst ORDERS = {\n  \"A1234\": { status: \"shipped\", eta: \"Tuesday\", item: \"blue hoodie\" },\n  \"B5678\": { status: \"processing\", eta: \"not shipped\", item: \"red mug\" }\n};\n\nconst orderId = String(rawQuery).trim().toUpperCase();\nconst order = ORDERS[orderId];\n\nif (!order) {\n  return `Cannot refund: no order found with ID '${orderId}'.`;\n}\n\n// This return only runs if the human-approval step (on the connector) approved it.\nreturn `Refund approved and processed for order ${orderId} (${order.item}).`;"
+      },
+      "type": "@n8n/n8n-nodes-langchain.toolCode",
+      "typeVersion": 1.3,
+      "position": [
+        672,
+        320
+      ],
+      "id": "ea3b504a-0ee8-4ebc-b609-d72f0535e282",
+      "name": "Redund"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "When chat message received": {
+      "main": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "OpenRouter Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Simple Memory": {
+      "ai_memory": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_memory",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "check_inventory": {
+      "ai_tool": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "lookup_order": {
+      "ai_tool": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "policy": {
+      "ai_tool": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Redund": {
+      "ai_tool": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate",
+    "availableInMCP": false
+  },
+  "versionId": "7f726b74-76e0-49ae-bd23-4754e2a4c5f8",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "172ba187a7a6b8d84c54a65c82e0158b61ef7d10067afaa4f9aeba27efdc579f"
+  },
+  "nodeGroups": [],
+  "id": "7yC3K62J6DZo3Njy",
+  "tags": []
+}

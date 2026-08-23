@@ -1,0 +1,9 @@
+fastapi
+uvicorn[standard]
+langchain
+langgraph
+langchain-openrouter
+langchain-huggingface
+sentence-transformers
+python-dotenv
+httpx

@@ -1,0 +1,14 @@
+__pycache__/
+*.py[cod]
+.env
+.env copy
+.venv/
+venv/
+env/
+myenv/
+chroma_db/
+.DS_Store
+.idea/
+.vscode/
+.~lock.*
+.ipynb_checkpoints/
