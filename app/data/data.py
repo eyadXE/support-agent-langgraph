@@ -1,7 +1,7 @@
 """Mock data: orders, stock, and help docs used for RAG."""
 
 ORDERS = {
-    "A1234": {"status": "shipped", "eta": "Tuesday", "item": "blue hoodie"},
+    "A1234": {"status": "shipped", "eta": "Tuesday", "item": "laptop"},
     "B5678": {"status": "processing", "eta": "not shipped", "item": "red mug"},
 }
 

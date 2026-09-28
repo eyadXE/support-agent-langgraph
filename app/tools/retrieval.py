@@ -8,7 +8,7 @@ import os
 # genuinely relevant; anything worse means "we don't have that covered" —
 # without this, similarity_search always returns *something*, which is how
 # the agent ends up fabricating an answer to an uncovered question.
-_RELEVANCE_THRESHOLD = float(os.getenv("relevance_threshold", "0.4"))
+_RELEVANCE_THRESHOLD = float(os.getenv("relevance_threshold", "0.25"))
 
 @tool
 def search_policy_docs(query: str) -> str:

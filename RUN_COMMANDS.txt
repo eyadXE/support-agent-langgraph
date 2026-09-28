@@ -1,0 +1,13 @@
+# support-agent-langgraph — copy/paste run commands (PowerShell)
+# Single terminal, single process. .env already has a real OpenRouter key configured -- don't overwrite it.
+
+python -m venv .venv
+.venv\Scripts\pip.exe install -r requirements.txt
+.venv\Scripts\python.exe -m uvicorn app.app_run:app --port 8000
+# Open: http://127.0.0.1:8000/  <- chat UI served directly, nothing else to start
+
+# Scripted demo (use a fresh browser tab):
+#  1) "Is the item from order A1234 in stock?"         -> tool-chained order + live stock lookup
+#  2) "Can I return a hoodie I bought two weeks ago?"   -> grounded RAG policy answer (30-day rule)
+#  3) "Do you gift-wrap?"                                -> honest "I don't have that information"
+#  4) "I want a refund for order A1234"                 -> pauses for human approval (Approve/Reject buttons)
