@@ -70,7 +70,17 @@ app/
 
 ## Screenshots
 
-*(Screenshots coming soon)*
+**Tool-backed answer, live data** — asking about iPhone stock triggers a real inventory search against the live product catalog, not a guess:
+
+![Chat showing a live stock lookup](images/chat-stock-lookup.png)
+
+**Human-in-the-loop refund approval** — `process_refund` pauses the graph and shows exactly what it's about to do before anything happens:
+
+![Refund request paused for human approval, showing the exact action JSON](images/refund-approval-card.png)
+
+**Refund completed after approval** — the agent only confirms once the human has actually clicked Approve:
+
+![Refund confirmed after approval](images/refund-approved.png)
 
 ## Running it
 
